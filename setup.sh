@@ -27,12 +27,13 @@ log_error() {
 
 distribution_id() {
     RETVAL=""
-    if [ -z "${RETVAL}" -a -e "/etc/system-release" ] || [ -z "${RETVAL}" -a -e "/etc/rhel-release" ]; then
-        RELEASE_OUT=$(head -n1 /etc/system-release) || $(head -n1 /etc/rhelm-release)
+
+ if [ -z "${RETVAL}" -a -e "/etc/system-release" ] || [ -z "${RETVAL}" -a -e "/etc/rhel-release" ]; then
+        RELEASE_OUT=$(head -n1 /etc/system-release) || $(head -n1 /etc/rhel-release)
         case "${RELEASE_OUT}" in
             Red\ Hat\ Enterprise\ Linux*)
                 RETVAL="rhel"
-                ;;
+               ;;
             CentOS*)
                 RETVAL="centos"
                 ;;
@@ -42,9 +43,21 @@ distribution_id() {
             Amazon\ Linux\ release*)
                 RETVAL="ami"
                 ;;
-        esac
-       echo $RETVAL
-    fi
+esac
+elif [ -z "${RETVAL}" -a -e "/etc/lsb-release" ]; then
+
+RELEASE_OUT=$(head -n1 /etc/lsb-release)
+
+     case "${RELEASE_OUT}" in
+            DISTRIB_ID=Ubuntu)
+                RETVAL="Ubuntu"
+               ;;
+esac
+
+echo $RETVAL
+fi
+
+
 } 
 
 distribution_id
@@ -54,7 +67,8 @@ distribution_major_version() {
                         /etc/centos-release \
                         /etc/fedora-release \
                         /etc/redhat-release \
-                        /etc/rhelm-release
+                        /etc/rhelm-release \
+                        /etc/lsb-release 
     do
         if [ -e "${RELEASE_FILE}" ]; then
             RELEASE_VERSION=$(head -n1 ${RELEASE_FILE})
@@ -71,8 +85,9 @@ if [ $? -ne 0 ]; then
     SKIP_ANSIBLE_CHECK=0
     case $(distribution_id) in
 
-    rhel|centos|ol|ami)
+    rhel|centos|ol|ami|Ubuntu)
             DISTRIBUTION_MAJOR_VERSION=$(distribution_major_version)
+echo "$DISTRIBUTION_MAJOR_VERSION ***********************************************"
             is_bundle_install
             if [ $? -eq 0 ]; then
                 log_warning "Will install bundled Ansible"
@@ -81,16 +96,28 @@ if [ $? -ne 0 ]; then
                 case ${DISTRIBUTION_MAJOR_VERSION} in
                     6)
                         yum install -y http://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+yum install -y ansible
                         ;;
                     7)
                         yum install -y http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum install -y ansible
                         ;;
-                     2) yum install -y http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                    2) yum install -y http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum install -y ansible
                          ;;
+                    *)
+apt-get update -y
+        sudo apt install software-properties-common -y
+        echo -ne "\n" | apt-add-repository ppa:ansible/ansible
+        sudo apt-get update -y
+        apt-get install -y ansible
+;;
+
                 esac
-                yum install -y ansible
             fi
-    esac
+     esac
+  
+
 # Check whether ansible was successfully installed
     if [ ${SKIP_ANSIBLE_CHECK} -ne 1 ]; then
         is_ansible_installed

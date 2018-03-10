@@ -2,6 +2,17 @@
 - include_vars: ../../vars/default.yml
 - name: Install Artifactory repo
   get_url: url=https://bintray.com/jfrog/artifactory-pro-rpms/rpm dest=/etc/yum.repos.d/bintray-jfrog-artifactory-pro-rpms.repo
+  when: ansible_os_family == 'CentOS' or ansible_os_family == 'RedHat'
+
+- name: Install Artifactory repo
+  shell: echo "deb https://jfrog.bintray.com/artifactory-pro-debs xenial main" | sudo tee -a /etc/apt/sources.list
+  when: ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'
+
+
+- name: update
+  apt:
+    update_cache: yes
+  when: ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'
 
 - name: Install Java and  Artifactory
   yum: pkg={{ item }}
@@ -11,14 +22,27 @@
    - unzip
    - zip
    - wget
+  when: ansible_os_family == 'CentOS' or ansible_os_family == 'RedHat'
+
+- name: Install Java and  Artifactory
+  apt: allow_unauthenticated=yes pkg={{ item }} state=present
+  with_items:
+    - jfrog-artifactory-pro
+    - openjdk-8*
+    - unzip
+    - zip
+    - wget
+  become: yes
+  when: ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'
+
 
 - name: Download and Unzip MySQL JDBC jar file
-  unarchive: src=https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.44.zip dest=/tmp/ remote_src=yes
+  unarchive: src=https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.45.zip dest=/tmp/ remote_src=yes
 
 - name: Copy the MySQL JDBC jar file
   copy: src={{ item.src }} dest={{ item.dest }}
   with_items:
-    - { src: '/tmp/mysql-connector-java-5.1.44/mysql-connector-java-5.1.44-bin.jar', dest: '/opt/jfrog/artifactory/tomcat/lib/' }
+    - { src: '/tmp/mysql-connector-java-5.1.45/mysql-connector-java-5.1.45-bin.jar', dest: '/opt/jfrog/artifactory/tomcat/lib/' }
     - { src: '/var/opt/jfrog/artifactory/misc/db/mysql.properties', dest: '/etc/opt/jfrog/artifactory/db.properties' }
  
 - name: Update Mysql Configuration

@@ -1,6 +1,11 @@
 ---
 - name: Install Python-pip
   yum: name=python-pip state=latest update_cache=true
+  when: ansible_os_family == 'CentOS' or ansible_os_family == 'RedHat'
+
+- name: Install Python-pip
+  apt: name=python-pip state=latest update_cache=true
+  when: ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'
 
 - name: Instal PyOpenSSL
   pip: name=PyOpenSSL>=0.15 state=present
