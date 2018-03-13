@@ -44,6 +44,7 @@ distribution_id() {
                 RETVAL="ami"
                 ;;
 esac
+echo $RETVAL
 elif [ -z "${RETVAL}" -a -e "/etc/lsb-release" ]; then
 
 RELEASE_OUT=$(head -n1 /etc/lsb-release)

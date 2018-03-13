@@ -41,6 +41,20 @@
   when: ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'
 
 
+- name: Find the temporaty password generated
+  shell: "echo `grep 'temporary.*root@localhost' /var/log/mysqld.log | sed 's/.*root@localhost: //'`"
+  register: mysql_root_password_temp
+  tags: register
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- name: Set the password from temporaty password
+  shell: 'mysql -e "SET PASSWORD = PASSWORD(''{{ Mysql_root_password }}'');" --connect-expired-password -u root -p"{{ mysql_root_password_temp.stdout }}"'
+  register: set_pass
+  failed_when: set_pass.rc >= 2
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+
+
 - name: Remove test database if exists
   mysql_db: name=test state=absent login_user={{ DB_USER }} login_password={{ Mysql_root_password }}
 
